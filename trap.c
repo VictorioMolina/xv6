@@ -83,14 +83,18 @@ trap(struct trapframe *tf)
       // rcr2() -> dir. page fault
       // get a new physical memory frame with kalloc()
       // map it using mappages()  
+
+      if(myproc() == 0 || (tf->cs&3) == 0) {
+        // In kernel, it must be our mistake.
+        cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
+                tf->trapno, cpuid(), tf->eip, rcr2());
+         panic("trap");
+      }
       
       // 0. Calculate a virtual address
-      uint va = rcr2();
+      uint va = PGROUNDDOWN(rcr2());
 
       // 1. Validate the calculated virtual address
-      if(va >= myproc()->sz)
-        panic("lazy page allocation: out of boundaries");
-
       if(va >= KERNBASE)
         panic("lazy page allocation: kernel space is not valid");
 
@@ -100,15 +104,15 @@ trap(struct trapframe *tf)
       char* mem = kalloc();
       if (mem == 0) 
       {
-        cprintf("kalloc out of memory\n");
+        cprintf("kalloc: out of memory\n");
         kfree((char *)P2V(mem));
       } 
       else 
       {
         memset(mem, 0, PGSIZE);
-        if(mappages(myproc()->pgdir, (char*) PGROUNDDOWN(va), PGSIZE, V2P(mem), PTE_W|PTE_U) < 0)
+        if(mappages(myproc()->pgdir, (char*) va, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0)
         {
-          cprintf("kalloc out of memory (2)\n");
+          cprintf("Mapping page: PT out of memory\n");
           kfree(mem);
         };
       }

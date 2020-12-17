@@ -59,8 +59,15 @@ sys_sbrk(void)
   
   //if(growproc(n) < 0)
   //  return -1;
-  
-  myproc()->sz += n;
+
+  // TODO - Study if it could be possible to reach
+  // the situation in which the process touches
+  // the kernel zone after its size growth
+  if(n >= 0) {
+    myproc()->sz += n;
+  } else {
+    return -1;
+  }
 
   return addr;
 }
