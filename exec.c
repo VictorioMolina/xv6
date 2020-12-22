@@ -7,6 +7,7 @@
 #include "x86.h"
 #include "elf.h"
 
+
 int
 exec(char *path, char **argv)
 {
@@ -59,10 +60,18 @@ exec(char *path, char **argv)
   iunlockput(ip);
   end_op();
   ip = 0;
-
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
   sz = PGROUNDUP(sz);
+
+  // Save the guard page
+  curproc->guardpage = sz + 2 * PGSIZE;
+
+  // TODO - The number of pages for the user stack has to be
+  // equals to number of data pages + number of text pages
+  /*int numpages = (curproc->sz - curproc->guardpage) / PGSIZE;
+  cprintf("Num pages: %d", numpages);*/
+
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
